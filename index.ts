@@ -4,27 +4,21 @@ const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
 const databaseId = process.env.NOTION_DATABASE_ID;
 
-const addItem = async (text: string) => {
+const queryDailyRetrospects = async () => {
   try {
-    const response = await notion.pages.create({
-      parent: { database_id: databaseId },
-      properties: {
-        title: {
-          title: [
-            {
-              text: {
-                content: text,
-              },
-            },
-          ],
+    const result = await notion.databases.query({
+      database_id: databaseId,
+      filter: {
+        property: "Database",
+        select: {
+          equals: "Daily Retrospect",
         },
       },
     });
-    console.log(response);
-    console.log("Success! Entry added.");
+    console.log(result);
   } catch (error) {
-    console.error(error);
+    console.log(error);
   }
 };
 
-addItem("Yurts in Big Sur, California");
+queryDailyRetrospects();
