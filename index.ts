@@ -13,7 +13,7 @@ const databaseId = process.env.NOTION_DATABASE_ID;
 
 const queryDailyRetrospects = async () => {
   try {
-    const result = await notion.databases.query({
+    const data = await notion.databases.query({
       database_id: databaseId,
       filter: {
         property: "Database",
@@ -22,18 +22,19 @@ const queryDailyRetrospects = async () => {
         },
       },
     });
-    const { thisMonthData, lastMonthData } = getTargetRangeData(result.results);
+    const ranges = createRange();
+    const result = getTargetRangeData(data.results, ranges).reverse();
 
     const myChart = new QuickChart();
     myChart
       .setConfig({
         type: "bar",
         data: {
-          labels: ["Last Month", "This Month"],
+          labels: result.map(({ date }) => date),
           datasets: [
             {
               label: "Daily Retrospects",
-              data: [lastMonthData.data, thisMonthData.data],
+              data: result.map(({ entry }) => entry),
             },
           ],
         },
@@ -47,30 +48,42 @@ const queryDailyRetrospects = async () => {
   }
 };
 
-const getTargetRangeData = (
-  data: (PageObjectResponse | PartialPageObjectResponse)[]
-) => {
-  const thisMonthData = data.filter(
-    (dailyRetrospect) =>
-      DateTime.fromISO(dailyRetrospect.created_time).month ===
-      DateTime.now().month
-  );
-  const lastMonthData = data.filter(
-    (dailyRetrospect) =>
-      DateTime.fromISO(dailyRetrospect.created_time).month ===
-      DateTime.now().month - 1
-  );
-  console.log();
-  return {
-    thisMonthData: {
-      month: DateTime.now().month,
-      data: thisMonthData.length,
-    },
-    lastMonthData: {
-      month: DateTime.now().month - 1,
-      data: lastMonthData.length,
-    },
-  };
+type Month = {
+  readonly start: number;
+  readonly end: number;
 };
 
+const createRange = () => {
+  const dt = DateTime.now();
+  const targetRange: Month[] = [];
+
+  for (let i = 0; i < 5; i++) {
+    const month = dt.minus({ month: i });
+    targetRange.push({
+      start: month.startOf("month").toMillis(),
+      end: month.endOf("month").toMillis(),
+    });
+  }
+
+  return targetRange;
+};
+
+type dailyRetrospects = (PageObjectResponse | PartialPageObjectResponse)[];
+
+const filterTargetData = (data: dailyRetrospects, { start, end }: Month) =>
+  data.filter((item) => {
+    const itemDate = DateTime.fromISO(item.created_time).toMillis();
+    return itemDate >= start && itemDate <= end;
+  });
+
+const getTargetRangeData = (
+  data: (PageObjectResponse | PartialPageObjectResponse)[],
+  ranges: Month[]
+) =>
+  ranges.map((range, i) => ({
+    date: DateTime.now().minus({ month: i }).toFormat("yyyy/MM"),
+    entry: filterTargetData(data, range).length,
+  }));
+
 queryDailyRetrospects();
+// console.log(createRange());
