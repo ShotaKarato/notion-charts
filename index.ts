@@ -86,4 +86,3 @@ const getTargetRangeData = (
   }));
 
 queryDailyRetrospects();
-// console.log(createRange());
