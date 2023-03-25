@@ -8,45 +8,7 @@ import type {
 } from "@notionhq/client/build/src/api-endpoints";
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
-
 const databaseId = process.env.NOTION_DATABASE_ID;
-
-const queryDailyRetrospects = async () => {
-  try {
-    const data = await notion.databases.query({
-      database_id: databaseId,
-      filter: {
-        property: "Database",
-        select: {
-          equals: "Daily Retrospect",
-        },
-      },
-    });
-    const ranges = createRange();
-    const result = getTargetRangeData(data.results, ranges).reverse();
-
-    const myChart = new QuickChart();
-    myChart
-      .setConfig({
-        type: "bar",
-        data: {
-          labels: result.map(({ date }) => date),
-          datasets: [
-            {
-              label: "Daily Retrospects",
-              data: result.map(({ entry }) => entry),
-            },
-          ],
-        },
-      })
-      .setWidth(500)
-      .setHeight(300);
-
-    console.log(myChart.getUrl());
-  } catch (error) {
-    console.log(error);
-  }
-};
 
 type Month = {
   readonly start: number;
@@ -84,5 +46,42 @@ const getTargetRangeData = (
     date: DateTime.now().minus({ month: i }).toFormat("yyyy/MM"),
     entry: filterTargetData(data, range).length,
   }));
+
+const queryDailyRetrospects = async () => {
+  try {
+    const data = await notion.databases.query({
+      database_id: databaseId,
+      filter: {
+        property: "Database",
+        select: {
+          equals: "Daily Retrospect",
+        },
+      },
+    });
+    const ranges = createRange();
+    const result = getTargetRangeData(data.results, ranges).reverse();
+
+    const myChart = new QuickChart();
+    myChart
+      .setConfig({
+        type: "bar",
+        data: {
+          labels: result.map(({ date }) => date),
+          datasets: [
+            {
+              label: "Daily Retrospects",
+              data: result.map(({ entry }) => entry),
+            },
+          ],
+        },
+      })
+      .setWidth(500)
+      .setHeight(300);
+
+    console.log(myChart.getUrl());
+  } catch (error) {
+    console.log(error);
+  }
+};
 
 queryDailyRetrospects();
